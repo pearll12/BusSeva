@@ -31,8 +31,8 @@ body::before {
   border-radius: 24px;
   box-shadow: 0 32px 64px rgba(0,0,0,0.25), 0 0 0 1px rgba(255,255,255,0.2);
   width: 100%;
-max-width: 600px;  /* card won’t exceed 600px */
-min-width: 400px;  /* optional: avoid too tiny card on medium screens */    /* optional: avoid too small cards on tiny screens */
+  max-width: 600px;
+  min-width: 400px;
   min-height: 420px;
   display: flex;
   flex-direction: column;
@@ -138,14 +138,15 @@ min-width: 400px;  /* optional: avoid too tiny card on medium screens */    /* o
   .logo { font-size: 28px; }
 }
 `;
+
 function showNotification(message, type = "info") {
   const notification = document.createElement("div");
   notification.style.cssText = `
-      position: fixed; top: 20px; right: 20px; padding: 12px 20px;
-      background: ${type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#4f46e5"};
-      color: white; border-radius: 10px; font-weight: 600; z-index: 10000;
-      transform: translateX(400px); transition: transform 0.3s ease;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    position: fixed; top: 20px; right: 20px; padding: 12px 20px;
+    background: ${type === "success" ? "#10b981" : type === "error" ? "#ef4444" : "#4f46e5"};
+    color: white; border-radius: 10px; font-weight: 600; z-index: 10000;
+    transform: translateX(400px); transition: transform 0.3s ease;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
   `;
   notification.textContent = message;
   document.body.appendChild(notification);
@@ -153,70 +154,89 @@ function showNotification(message, type = "info") {
   setTimeout(() => { notification.style.transform = "translateX(400px)"; setTimeout(() => notification.remove(), 300); }, 3000);
 }
 
-const SignInForm = () => {
+const SignForm = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [passwordType, setPasswordType] = useState("password");
-  const togglePassword = () => setPasswordType(prev => prev === "password" ? "text" : "password");
+  const [isSignup, setIsSignup] = useState(false);
+
+  // idle | loading | success
+  const [status, setStatus] = useState("idle");
+  const isLoading = status === "loading";
+
+  const togglePassword = () =>
+    setPasswordType((prev) => (prev === "password" ? "text" : "password"));
 
   const handleFormSubmit = async (e) => {
-  e.preventDefault();
-  
-  const btn = e.target.querySelector("#loginBtn");
-  const email = e.target.querySelector("#email").value;
-  const password = e.target.querySelector("#password").value;
+    e.preventDefault();
+    if (!email || !password) return;
 
-  if (email && password) {
-    btn.classList.add("loading");
-    btn.innerHTML = "";
+    setStatus("loading");
 
     try {
-      const res = await fetch("/api/login", {  // Use relative URL thanks to proxy
+      const url = isSignup
+        ? "http://localhost:5000/api/signup"
+        : "http://localhost:5000/api/login";
+
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
 
-      const contentType = res.headers.get("content-type");
-      if (contentType && contentType.includes("application/json")) {
+      const contentType = res.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
         const data = await res.json();
 
         if (res.ok) {
-          btn.classList.remove("loading");
-          btn.classList.add("success");
-          btn.innerHTML = "Welcome Aboard! 🎉";
-          showNotification("Login successful! Welcome to BusSeva!", "success");
+          setStatus("success");
+          showNotification(
+            isSignup
+              ? "Signup successful! You can now sign in."
+              : "Login successful! Welcome to BusSeva!",
+            "success"
+          );
 
           setTimeout(() => {
-            btn.classList.remove("success");
-            btn.innerHTML = "Sign In";
-            // Optionally redirect to another page here, e.g.:
-            // window.location.href = "/dashboard";
-          }, 2000);
+            // Reset visual state back
+            setStatus("idle");
+
+            if (!isSignup) {
+              // Redirect after successful login
+              window.location.href = "http://localhost:3000";
+            } else {
+              // After successful signup, switch to sign in and clear fields
+              setIsSignup(false);
+              setEmail("");
+              setPassword("");
+            }
+          }, 1600);
         } else {
-          throw new Error(data.message || "Login failed");
+          throw new Error(
+            data?.message || `${isSignup ? "Signup" : "Login"} failed`
+          );
         }
       } else {
         const text = await res.text();
         throw new Error(`Unexpected server response: ${text}`);
       }
     } catch (error) {
-      btn.classList.remove("loading");
-      btn.innerHTML = "Sign In";
+      // CRITICAL: Clear controlled inputs on error so UI resets
+      setStatus("idle");
+      setEmail("");
+      setPassword("");
       showNotification(error.message, "error");
     }
-  }
-};
-
-  const handleInputAnimation = e => {
-    const input = e.target;
-    const label = input.closest(".form-group").querySelector(".form-label");
-    if (input.value.length > 0) {
-      input.style.borderColor = "#4f46e5";
-      label.style.color = "#4f46e5";
-    } else {
-      input.style.borderColor = "#e2e8f0";
-      label.style.color = "#374151";
-    }
   };
+
+  const buttonLabel =
+    status === "success"
+      ? isSignup
+        ? "Account Created! 🎉"
+        : "Welcome Aboard! 🎉"
+      : isSignup
+      ? "Sign Up"
+      : "Sign In";
 
   return (
     <>
@@ -225,33 +245,89 @@ const SignInForm = () => {
         <div className="login-header">
           <div className="bus-icon">🚌</div>
           <div className="logo">BusSeva</div>
-          <div className="welcome-text">Welcome back!</div>
-          <div className="subtitle">Sign in to continue your journey</div>
+          <div className="welcome-text">
+            {isSignup ? "Create your account" : "Welcome back!"}
+          </div>
+          <div className="subtitle">
+            {isSignup
+              ? "Sign up to start your journey"
+              : "Sign in to continue your journey"}
+          </div>
         </div>
 
         <form className="login-form" onSubmit={handleFormSubmit}>
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email Address</label>
             <div className="input-wrapper">
-              <input type="email" id="email" className="form-input" placeholder="Enter your email" required onInput={handleInputAnimation} />
+              <input
+                type="email"
+                id="email"
+                className="form-input"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                required
+                autoComplete="email"
+                autoFocus
+              />
             </div>
           </div>
 
           <div className="form-group">
             <label className="form-label" htmlFor="password">Password</label>
             <div className="input-wrapper">
-              <input type={passwordType} id="password" className="form-input" placeholder="Enter your password" required onInput={handleInputAnimation} />
-              <button type="button" className="toggle-password" onClick={togglePassword}>
+              <input
+                type={passwordType}
+                id="password"
+                className="form-input"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                required
+                autoComplete={isSignup ? "new-password" : "current-password"}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={togglePassword}
+                disabled={isLoading}
+                aria-label="Toggle password visibility"
+              >
                 {passwordType === "password" ? "👁" : "🙈"}
               </button>
             </div>
           </div>
 
-          <button type="submit" className="login-btn" id="loginBtn">Sign In</button>
+          <button
+            type="submit"
+            className={`login-btn ${isLoading ? "loading" : ""} ${status === "success" ? "success" : ""}`}
+            id="loginBtn"
+            disabled={isLoading}
+          >
+            {buttonLabel}
+          </button>
 
           <div className="forgot-password">
-            <a href="#" onClick={e => { e.preventDefault(); showNotification("Redirecting to password recovery...", "info"); }}>
-              Forgot your password?
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setIsSignup((prev) => !prev);
+                // Clear controlled inputs and visual state on mode switch
+                setStatus("idle");
+                setEmail("");
+                setPassword("");
+                showNotification(
+                  isSignup ? "Switched to Sign In mode." : "Switched to Sign Up mode.",
+                  "info"
+                );
+              }}
+            >
+              {isSignup
+                ? "Already have an account? Sign In"
+                : "Don't have an account? Sign Up"}
             </a>
           </div>
         </form>
@@ -261,7 +337,7 @@ const SignInForm = () => {
 };
 
 function Login() {
-  return <SignInForm />;
+  return <SignForm />;
 }
 
 export default Login;
