@@ -180,7 +180,7 @@ const BusSevaHomepage = () => {
         gap: '14px',
         alignItems: 'end'
       },
-      inputGroup: { display: 'flex', flexDirection: 'column', gap: '8px' },
+      inputGroup: { display: 'flex', flexDirection: 'column', gap: '9px' },
       label: { fontSize: '13px', fontWeight: 700, color: '#0f172a', letterSpacing: '0.2px' },
       inputWrapper: { position: 'relative' },
       input: {
