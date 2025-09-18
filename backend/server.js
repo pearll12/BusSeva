@@ -11,7 +11,7 @@ app.use(express.json());
 // ✅ CORS config
 app.use(
   cors({
-    origin: ["https://bus-seva.vercel.app", "http://localhost:3000"], 
+    origin: ["https://bus-seva.vercel.app", "https://busseva.onrender.com"], 
     methods: ["GET", "POST", "PUT", "DELETE"],
     credentials: true,
   })
