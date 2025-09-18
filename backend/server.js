@@ -3,7 +3,10 @@ require('dotenv').config();   // <-- Load .env file
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const bcrypt = require('bcrypt');
+
+const bcrypt = require("bcryptjs");
+
+
 
 const app = express();
 app.use(express.json());
