@@ -3,14 +3,19 @@ require('dotenv').config();   // <-- Load .env file
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-
 const bcrypt = require("bcryptjs");
-
-
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+
+// ✅ CORS config
+app.use(
+  cors({
+    origin: ["https://bus-seva.vercel.app", "http://localhost:3000"], 
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+  })
+);
 
 // 🔗 MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
@@ -39,7 +44,6 @@ app.post('/api/signup', async (req, res) => {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const newUser = new User({ email, password: hashedPassword });
     await newUser.save();
 
@@ -70,9 +74,9 @@ app.post('/api/login', async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    res.status(200).json({ message: 'Login successful', user });
+    res.status(200).json({ message: 'Login successful', user: { email: user.email } });
   } catch (err) {
-    res.status(500).json({ message: 'Server Error', error: err });
+    res.status(500).json({ message: 'Server Error', error: err.message });
   }
 });
 
